@@ -33,6 +33,9 @@ struct scenario {
   unsigned int delay;
 };
 
+static struct slot roadway[ROADWAY_LENGTH][ROADWAY_WIDTH];
+static struct scenario schedules[5];
+static int schlength = sizeof(schedules) / sizeof(schedules[0]);
 /*
  * create a vehicle with a 50:50 probability
  */
@@ -81,42 +84,43 @@ void parse_scenario(struct scenario *sarr, int sarr_length, const char *schedule
 #undef TOKENS
 }
 
-void run_scenario(struct slot road[][2], int roadlen, int roadw, char direction){  
+void *run_scenario(void *arg){
+  char *param = (char *) arg;
   int track = 0;
-  if(direction == 's')
+  if(*param == 's')
     track = 1;
   struct vehicle occupant = create_vehicle();
-  for(int s = 0; s < roadlen; s++){
-    if(road[s][track].type == 'b' && road[s - 1][track].type == 'r'){
+  for(int s = 0; s < ROADWAY_LENGTH; s++){
+    if(roadway[s][track].type == 'b' && roadway[s - 1][track].type == 'r'){
       // transition onto bridge
-      printf("vehicle(%c:%i) arriving bridge at index %i\n", occupant.type, occupant.id, s);
+      printf("%c: vehicle(%c:%i) arriving bridge\n", *param, occupant.type, occupant.id);
       while(bridge_occupancy + occupant.weight >  bridge_capacity)
 	pthread_cond_wait(&bridge_occupancy_cv, &bridge_mutex);
-      pthread_mutex_lock(&road[s][track].lock);
+      pthread_mutex_lock(&roadway[s][track].lock);
       pthread_mutex_lock(&bridge_mutex);
-      road[s][track].occupant = occupant;
+      roadway[s][track].occupant = occupant;
       bridge_occupancy += occupant.weight;
       sleep(1);
       pthread_mutex_unlock(&bridge_mutex);
-      pthread_mutex_unlock(&road[s][track].lock);
-    } else if(road[s][track].type == 'r' && road[s - 1][track].type == 'b'){
+      pthread_mutex_unlock(&roadway[s][track].lock);
+    } else if(roadway[s][track].type == 'r' && roadway[s - 1][track].type == 'b'){
       // transition off bridge
-      printf("vehicle(%c:%i) leaving bridge at index %i\n", occupant.type, occupant.id, s);
-      pthread_mutex_lock(&road[s][track].lock);
+      printf("%c: vehicle(%c:%i) leaving bridge\n", *param, occupant.type, occupant.id);
+      pthread_mutex_lock(&roadway[s][track].lock);
       pthread_mutex_lock(&bridge_mutex);
       bridge_occupancy -= occupant.weight;
       pthread_mutex_unlock(&bridge_mutex);
       pthread_cond_signal(&bridge_occupancy_cv);
-      road[s][track].occupant = occupant;
+      roadway[s][track].occupant = occupant;
       sleep(1);
-      pthread_mutex_unlock(&road[s][track].lock);
+      pthread_mutex_unlock(&roadway[s][track].lock);
     } else {
       //printf("vehicle(%c:%i) at index %i\n", occupant.type, occupant.id, s);
       // start on road way
-      pthread_mutex_lock(&road[s][track].lock);
-      road[s][track].occupant = occupant;
+      pthread_mutex_lock(&roadway[s][track].lock);
+      roadway[s][track].occupant = occupant;
       sleep(1);
-      pthread_mutex_unlock(&road[s][track].lock);
+      pthread_mutex_unlock(&roadway[s][track].lock);
     } 
   }
 }
@@ -132,9 +136,6 @@ int main(int argc, char *argv[]){
   }
   // create a roadway of length 100
   // whereby each y is a cardinal direction N/S
-  struct slot roadway[ROADWAY_LENGTH][ROADWAY_WIDTH];
-  struct scenario schedules[5];
-  int schlength = sizeof(schedules) / sizeof(schedules[0]);
   // ensure there is a bridge (b) of length 3(s)
   for(int x = 0; x < ROADWAY_LENGTH; x++){
     for(int y = 0; y < ROADWAY_WIDTH; y++){
@@ -161,11 +162,14 @@ int main(int argc, char *argv[]){
   free(schedule);
 
   for(int sched = 0; sched < schlength; sched++){
+    pthread_t tid;
     for(int n = 0; n < schedules[sched].north; n++){
-      ;
+      char direction = 'n';
+      pthread_create(&tid, NULL, run_scenario, &direction);
     }
     for(int s = 0; s < schedules[sched].south; s++){
-      ;
+      char direction = 's';
+      pthread_create(&tid, NULL, run_scenario, &direction);
     }
     sleep(schedules[sched].delay);
   }
