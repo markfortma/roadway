@@ -41,7 +41,7 @@ static int schlength = sizeof(schedules) / sizeof(schedules[0]);
  */
 struct vehicle create_vehicle(){
   struct vehicle cv;
-  srand((int) getpid());
+  srand(time(NULL));
   int flip = rand() % 100;
   if(flip > 50) {
     // van
