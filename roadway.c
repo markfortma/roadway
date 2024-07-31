@@ -161,8 +161,10 @@ int main(int argc, char *argv[]){
   // free the line allocated
   free(schedule);
 
+  pthread_t tid;
+  void *ret;
   for(int sched = 0; sched < schlength; sched++){
-    pthread_t tid;
+
     for(int n = 0; n < schedules[sched].north; n++){
       char direction = 'n';
       pthread_create(&tid, NULL, run_scenario, &direction);
@@ -175,6 +177,6 @@ int main(int argc, char *argv[]){
     }
     sleep(schedules[sched].delay);
   }
-
+  pthread_join(tid, &ret);
   return EXIT_SUCCESS;
 }
