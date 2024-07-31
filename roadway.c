@@ -166,10 +166,12 @@ int main(int argc, char *argv[]){
     for(int n = 0; n < schedules[sched].north; n++){
       char direction = 'n';
       pthread_create(&tid, NULL, run_scenario, &direction);
+      sleep(2);
     }
     for(int s = 0; s < schedules[sched].south; s++){
       char direction = 's';
       pthread_create(&tid, NULL, run_scenario, &direction);
+      sleep(2);
     }
     sleep(schedules[sched].delay);
   }
