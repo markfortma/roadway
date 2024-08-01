@@ -93,7 +93,10 @@ void *run_scenario(void *arg){
   for(int s = 0; s < ROADWAY_LENGTH; s++){
     if(roadway[s][track].type == 'b' && roadway[s - 1][track].type == 'r'){
       // transition onto bridge
-      printf("%c: vehicle(%c:%i) arriving bridge\n", *param, occupant.type, occupant.id);
+      printf("%s: vehicle(%s#%i) arriving bridge\n",
+	     track == 0 ? "north" : "south",
+	     occupant.type == 'c' ? "car" : "van",
+	     occupant.id);
       while(bridge_occupancy + occupant.weight >  bridge_capacity)
 	pthread_cond_wait(&bridge_occupancy_cv, &bridge_mutex);
       pthread_mutex_lock(&roadway[s][track].lock);
@@ -105,7 +108,10 @@ void *run_scenario(void *arg){
       pthread_mutex_unlock(&roadway[s][track].lock);
     } else if(roadway[s][track].type == 'r' && roadway[s - 1][track].type == 'b'){
       // transition off bridge
-      printf("%c: vehicle(%c:%i) leaving bridge\n", *param, occupant.type, occupant.id);
+      printf("%s: vehicle(%s#%i) leaving bridge\n",
+	     track == 0 ? "north" : "south",
+	     occupant.type == 'c' ? "car" : "van",
+	     occupant.id);
       pthread_mutex_lock(&roadway[s][track].lock);
       pthread_mutex_lock(&bridge_mutex);
       bridge_occupancy -= occupant.weight;
@@ -115,8 +121,7 @@ void *run_scenario(void *arg){
       sleep(1);
       pthread_mutex_unlock(&roadway[s][track].lock);
     } else {
-      //printf("vehicle(%c:%i) at index %i\n", occupant.type, occupant.id, s);
-      // start on road way
+      // on road way
       pthread_mutex_lock(&roadway[s][track].lock);
       roadway[s][track].occupant = occupant;
       sleep(1);
