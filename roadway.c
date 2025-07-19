@@ -5,6 +5,8 @@
 #include<unistd.h>
 #include<pthread.h>
 
+size_t getline(char **line, size_t *length, FILE *stream);
+
 struct vehicle {
   unsigned int weight;
   char type;
